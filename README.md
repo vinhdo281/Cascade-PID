@@ -18,9 +18,7 @@ Mô hình đối tượng vật lý gồm một xe truyền động chuyển đ�
 ---
 
 ## 🕹️ Cấu Trúc & Chiến Lược Điều Khiển
-Dưới đây là phần nội dung được căn chỉnh lại chuẩn xác theo định dạng Markdown code block để bạn dễ dàng sao chép trực tiếp vào file `README.md`:
 
-```text
 Hệ thống hoạt động qua hai giai đoạn riêng biệt được điều phối bởi **Cơ chế chuyển mạch có trễ (Hysteresis / State Latching)**:
 
 
