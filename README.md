@@ -1,12 +1,12 @@
-# Mô Phỏng Con Lắc Ngược Trên Xe: Swing-Up & Điều Khiển Cân Bằng Bằng Cascade PID (MATLAB/Simulink)
+# Mô Phỏng Con Lắc Ngược Trên Xe: Điều Khiển Cân Bằng Bằng Cascade PID (MATLAB/Simulink)
 
-Mô hình mô phỏng hoàn chỉnh hệ thống **Con lắc ngược trên xe (Inverted Pendulum on Cart)** được xây dựng trên nền tảng **MATLAB & Simulink (Simscape Multibody)**. Dự án triển khai chiến lược điều khiển lai (Hybrid Control) kết hợp giữa thuật toán **Swing-Up (Cộng hưởng / Bơm năng lượng)** để kích thích con lắc tự dựng lên từ vị trí treo dưới và cấu trúc **Cascade PID (Position + Angle)** để giữ cân bằng thẳng đứng quanh đỉnh cũng như bám điểm đặt vị trí xe.
+Mô hình mô phỏng hệ thống **Con lắc ngược trên xe (Inverted Pendulum on Cart)** được xây dựng trên nền tảng **MATLAB & Simulink (Simscape Multibody)**. Dự án tập trung vào cấu trúc điều khiển phân tầng **Cascade PID (Position + Angle)** để duy trì con lắc ở vị trí cân bằng thẳng đứng quanh đỉnh ($\theta = 0$) và bám chính xác điểm đặt vị trí của xe ($x$).
 
 ---
 
 ## 📌 Tổng Quan Hệ Thống
 
-Mô hình đối tượng vật lý gồm một xe truyền động chuyển động tịnh tiến 1 bậc tự do trên ray và một con lắc quay tự do gắn trên xe.
+Mô hình đối tượng vật lý gồm một xe truyền động chuyển động tịnh tiến 1 bậc tự do dọc theo ray trượt và một thanh con lắc quay tự do gắn trên xe.
 
 ### 📐 Thông Số Vật Lý (Simscape Plant)
 * **Khối lượng xe ($M$):** $1.0 \text{ kg}$ (Khối hộp Brick Solid: $0.3 \times 0.15 \times 0.08 \text{ m}$)
@@ -17,48 +17,28 @@ Mô hình đối tượng vật lý gồm một xe truyền động chuyển đ�
 
 ---
 
-## 🕹️ Cấu Trúc & Chiến Lược Điều Khiển
+## 🕹️ Cấu Trúc Điều Khiển Cascade PID
 
-Hệ thống hoạt động qua hai giai đoạn riêng biệt được điều phối bởi **Cơ chế chuyển mạch có trễ (Hysteresis / State Latching)**:
-
-
+Hệ thống sử dụng vòng lặp kép (Cascade Control Loop) để xử lý bản chất phi tuyến và phi cực tiểu của hệ con lắc ngược:
 ```
-              [ Trạng thái ban đầu: Con lắc treo dưới (|theta| > 10°) ]
-                                         │
-                                         ▼
-                              [ Bộ điều khiển Swing-Up ]
-                        (Dao động cộng hưởng + Giữ tâm xe)
-                                         │
-                                         │ Điều kiện bắt góc: |theta| <= 10° & |omega| <= 2.5 rad/s
-                                         ▼
-                              [ Khối Switch Tự Động ]
-                          (Reset tích phân qua khối Memory)
-                                         │
-                                         ▼
-                            [ Bộ Điều Khiển Cascade PID ]
-                 ┌───────────────────────────────────────────────┐
-                 │  Vòng ngoài: PID Pos   --> Góc đặt theta_ref  │
-                 │  Vòng trong: PID Angle --> Lực tác động u(t)  │
-                 └───────────────────────────────────────────────┘
-
+x_ref           e_x     ┌───────────┐  theta_ref     e_theta ┌───────────┐   u(t)   ┌──────────────┐          x, theta
+────(+)──────────(─)────►│  PID Pos  ├─────(+)────────(─)────►│ PID Angle ├─────────►│ Simscape Xe  ├───┬────────────────►
+     ▲                   └───────────┘      ▲                 └───────────┘ (Lực F)  │   & Con Lắc  │   │
+     │                                      │                                        └──────┬───────┘   │
+     │                                      └────────────────── q (Angle) ──────────────────┼───────────┘
+     └───────────────────────────────────────────────────────── x (Pos) ────────────────────┘
 ```
+### 1. Vòng Ngoài - Điều Khiển Vị Trí Xe (`PID Pos`)
+* **Nhiệm vụ:** Tạo ra góc nghiêng đặt $\theta_{\text{ref}}$ cho con lắc dựa trên sai lệch vị trí $e_x = x_{\text{ref}} - x$.
+* **Đặc tính:** 
+  * Hoạt động ở tần số thấp hơn vòng trong.
+  * Tích hợp khâu bão hòa góc (**Saturation Limit**: $\pm 0.1 \div 0.15\text{ rad}$) kèm thuật toán chống bão hòa tích phân (**Anti-windup: Clamping**) nhằm đảm bảo con lắc không bị nghiêng quá giới hạn tuyến tính.
 
-
-
-### 1. Điều khiển Swing-Up (Pha Phi Tuyến)
-* Sử dụng quy luật kích thích hình sin theo tần số dao động riêng của con lắc:
-  $$\omega_n = \sqrt{\frac{g}{l}} \approx 6.26 \text{ rad/s}$$
-* **Hạn chế biên độ xe:** Bổ sung phản hồi PD ảo để xe lấy đà đối xứng qua lại 2 hướng và giữ hành trình nằm an toàn trong khoảng giới hạn ($x \in [-10, 10]\text{ m}$):
-  $$F_{\text{swing}} = F_{\text{osc}} \cdot \sin(\omega_n t) - (k_x x + k_v \dot{x})$$
-
-### 2. Logic Chuyển Mạch (Hysteresis & Latching)
-* **Điều kiện bắt góc:** Kích hoạt khi $|\theta| \le 10^\circ$ ($0.1745 \text{ rad}$) và vận tốc góc $|\dot{\theta}| \le 2.5 \text{ rad/s}$.
-* **Khử vòng lặp đại số (Algebraic Loop):** Tín hiệu kích hoạt đi qua khối `Memory` trước khi đưa vào chân Reset ($R$) của `PID Angle` và chân điều khiển của khối `Switch`.
-
-### 3. Điều Khiển Cân Bằng Cascade PID (Pha Tuyến Tính)
-* **Vòng ngoài (`PID Pos`):** Tính toán góc nghiêng đặt $\theta_{\text{ref}}$ dựa trên sai lệch vị trí $(x_{\text{ref}} - x)$.
-* **Vòng trong (`PID Angle`):** Tính toán lực tác động trực tiếp lên xe $u(t)$ để triệt tiêu sai số góc.
-* Tích hợp tính năng **External Reset (Rising edge)** và **Saturation / Clamping** để chống hiện tượng bão hòa tích phân (Integrator Windup) khi vừa chuyển chế độ.
+### 2. Vòng Trong - Điều Khiển Cân Bằng Góc (`PID Angle`)
+* **Nhiệm vụ:** Tính toán trực tiếp lực tác động $u(t)$ truyền vào xe để triệt tiêu sai lệch góc $e_\theta = \theta_{\text{ref}} - \theta$.
+* **Đặc tính:** 
+  * Vòng phản hồi tốc độ cao, đóng vai trò tạo độ cứng vững và ổn định hệ thống.
+  * Tích hợp bộ lọc vi phân số hạng đạo hàm ($N$) để khử nhiễu đo lường và làm mượt lực điều khiển.
 
 ---
 
