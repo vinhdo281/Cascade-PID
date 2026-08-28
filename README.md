@@ -18,9 +18,16 @@ Mô hình đối tượng vật lý gồm một xe truyền động chuyển đ�
 ---
 
 ## 🕹️ Cấu Trúc & Chiến Lược Điều Khiển
+Dưới đây là phần nội dung được căn chỉnh lại chuẩn xác theo định dạng Markdown code block để bạn dễ dàng sao chép trực tiếp vào file `README.md`:
 
+```text
 Hệ thống hoạt động qua hai giai đoạn riêng biệt được điều phối bởi **Cơ chế chuyển mạch có trễ (Hysteresis / State Latching)**:
-  [ Trạng thái ban đầu: Con lắc treo dưới (|theta| > 10°) ]
+
+
+```
+
+```
+              [ Trạng thái ban đầu: Con lắc treo dưới (|theta| > 10°) ]
                                          │
                                          ▼
                               [ Bộ điều khiển Swing-Up ]
@@ -38,6 +45,11 @@ Hệ thống hoạt động qua hai giai đoạn riêng biệt được điều 
                  │  Vòng trong: PID Angle --> Lực tác động u(t)  │
                  └───────────────────────────────────────────────┘
 
+```
+
+```
+
+```
 ### 1. Điều khiển Swing-Up (Pha Phi Tuyến)
 * Sử dụng quy luật kích thích hình sin theo tần số dao động riêng của con lắc:
   $$\omega_n = \sqrt{\frac{g}{l}} \approx 6.26 \text{ rad/s}$$
