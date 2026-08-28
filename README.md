@@ -23,8 +23,6 @@ Hệ thống hoạt động qua hai giai đoạn riêng biệt được điều 
 
 
 ```
-
-```
               [ Trạng thái ban đầu: Con lắc treo dưới (|theta| > 10°) ]
                                          │
                                          ▼
@@ -45,7 +43,7 @@ Hệ thống hoạt động qua hai giai đoạn riêng biệt được điều 
 
 ```
 
-```
+
 
 ### 1. Điều khiển Swing-Up (Pha Phi Tuyến)
 * Sử dụng quy luật kích thích hình sin theo tần số dao động riêng của con lắc:
