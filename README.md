@@ -47,7 +47,6 @@ Hệ thống hoạt động qua hai giai đoạn riêng biệt được điều 
 
 ```
 
-```
 ### 1. Điều khiển Swing-Up (Pha Phi Tuyến)
 * Sử dụng quy luật kích thích hình sin theo tần số dao động riêng của con lắc:
   $$\omega_n = \sqrt{\frac{g}{l}} \approx 6.26 \text{ rad/s}$$
