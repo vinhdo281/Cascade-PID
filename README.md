@@ -20,3 +20,43 @@ Mô hình đối tượng vật lý gồm một xe truyền động chuyển đ�
 ## 🕹️ Cấu Trúc & Chiến Lược Điều Khiển
 
 Hệ thống hoạt động qua hai giai đoạn riêng biệt được điều phối bởi **Cơ chế chuyển mạch có trễ (Hysteresis / State Latching)**:
+[ Trạng thái ban đầu: Con lắc treo dưới (|theta| > 10°) ]
+                                         │
+                                         ▼
+                              [ Bộ điều khiển Swing-Up ]
+                        (Dao động cộng hưởng + Giữ tâm xe)
+                                         │
+                                         │ Điều kiện bắt góc: |theta| <= 10° & |omega| <= 2.5 rad/s
+                                         ▼
+                              [ Khối Switch Tự Động ]
+                          (Reset tích phân qua khối Memory)
+                                         │
+                                         ▼
+                            [ Bộ Điều Khiển Cascade PID ]
+                 ┌───────────────────────────────────────────────┐
+                 │  Vòng ngoài: PID Pos   --> Góc đặt theta_ref  │
+                 │  Vòng trong: PID Angle --> Lực tác động u(t)  │
+                 └───────────────────────────────────────────────┘
+
+                 ### 1. Swing-Up Control (Nonlinear Phase)
+* Driven by resonant harmonic excitation at the natural frequency of the pendulum:
+  $$\omega_n = \sqrt{\frac{g}{l}} \approx 6.26 \text{ rad/s}$$
+* **Centering & Damping Action:** A soft PD feedback term ensures the cart stays strictly within the bounded region ($x \in [-10, 10]\text{ m}$):
+  $$F_{\text{swing}} = F_{\text{osc}} \cdot \sin(\omega_n t) - (k_x x + k_v \dot{x})$$
+
+### 2. Switching Logic (Hysteresis & Latching)
+* **Catch Condition:** Activates when $|\theta| \le 10^\circ$ ($0.1745 \text{ rad}$) and angular velocity $|\dot{\theta}| \le 2.5 \text{ rad/s}$.
+* **Algebraic Loop Prevention:** A `Memory` block delays the reset and switching flag to ensure clean execution and avoid direct feedthrough algebraic loops.
+
+### 3. Cascade PID Balancing (Linear Phase)
+* **Outer Loop (Position PID):** Computes the desired lean angle $\theta_{\text{ref}}$ based on position error $(x_{\text{ref}} - x)$.
+* **Inner Loop (Angle PID):** Computes the control force $u(t)$ to stabilize the pendulum around $\theta_{\text{ref}} = 0$.
+* Configured with **Integrator Reset (Rising Edge)** and **Output Clamping/Saturation** to prevent integrator windup during handoff.
+
+---
+
+## 🛠️ Simulation Setup & Requirements
+
+* **MATLAB / Simulink** (R2022a or newer recommended)
+* **Simscape** & **Simscape Multibody**
+* **Simulink Control Design**
